@@ -1,0 +1,50 @@
+@startuml
+title Building Registration and Viewing Available Buildings
+
+participant "Client Agent" as Client
+participant "Building Agent" as Building
+participant "Rental Agent" as Rental
+
+== 1. Building Registration ==
+
+note over Building, Rental
+The Building Agent sends a heartbeat containing
+its name and room data to the Rental Agent.
+The Rental Agent registers the building if it
+does not already exist in its memory.
+end note
+
+Building -> Rental : heartbeat
+Rental -> Rental : registerBuilding
+
+loop Every 5 seconds
+    Building -> Rental : heartbeat
+    Rental -> Rental : markBuildingAlive
+end
+
+note over Building, Rental
+Heartbeats keep the Rental Agent's building
+and room information up to date.
+end note
+
+== 2. View Available Buildings ==
+
+note over Client, Rental
+The Client Agent requests a list of buildings.
+The Rental Agent returns the building information
+stored in its memory, rather than querying each
+Building Agent directly.
+
+The information is refreshed through heartbeats
+every 5 seconds.
+end note
+
+Client -> Rental : ListBuildingsRequest
+activate Rental
+
+Rental -> Rental : returnAvailableBuildings
+Rental --> Client : BuildingsListMessage
+
+deactivate Rental
+
+@enduml

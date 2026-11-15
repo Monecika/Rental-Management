@@ -1,0 +1,94 @@
+@startuml
+title Client, Rental and Building Agent - Reservation Management
+
+participant "Client Agent" as Client
+participant "Rental Agent" as Rental
+participant "Building Agent" as Building
+
+== 1. Rent a Room ==
+
+note over Client, Rental
+The Client Agent sends a request to reserve a room.
+The Rental Agent forwards the request to the
+Building Agent responsible for the selected building.
+end note
+
+Client -> Rental : RentRequestMessage
+activate Rental
+
+Rental -> Building : RentRequestMessage
+activate Building
+
+Building -> Building : checkAvailability
+
+alt Room available
+    Building -> Building : updateRoomStatus
+    Building --> Rental : reservationApproved
+    deactivate Building
+
+    note over Rental
+    The Rental Agent stores the reservation
+    and forwards the reservation details to the client.
+    end note
+
+    Rental --> Client : ReservationResponseMessage
+else Room unavailable
+    Building --> Rental : reservationFailed
+    deactivate Building
+
+    note over Rental
+    The Rental Agent forwards an error
+    indicating that the room is unavailable.
+    end note
+
+    Rental --> Client : ErrorMessage
+end
+
+deactivate Rental
+
+== 2. Confirm Reservation ==
+
+note over Client, Rental
+The Client Agent sends a request containing the reservation UUID.
+The Rental Agent checks whether the UUID exists in its storage.
+If found, it updates the reservation status to CONFIRMED.
+end note
+
+Client -> Rental : ConfirmReservationRequest
+activate Rental
+
+Rental -> Rental : updateReservationStatus
+Rental --> Client : ReservationConfirmedMessage
+
+deactivate Rental
+
+== 3. Cancel Reservation ==
+
+note over Client, Rental
+The Client Agent sends a cancellation request containing the reservation UUID.
+The Rental Agent checks whether the UUID exists in its storage.
+If found, it forwards the cancellation request to the Building Agent
+and updates its own reservation storage.
+end note
+
+Client -> Rental : CancelReservationRequest
+activate Rental
+
+Rental -> Building : CancelReservationRequest
+activate Building
+
+note over Building
+The Building Agent updates its room data
+to mark the room as available.
+end note
+
+Building -> Building : updateRoomStatus
+Building --> Rental : cancellationProcessed
+deactivate Building
+
+Rental -> Rental : updateReservationStatus
+Rental --> Client : ReservationCanceledMessage
+
+deactivate Rental
+
+@enduml
